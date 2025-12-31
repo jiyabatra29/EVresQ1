@@ -1,63 +1,34 @@
-if (process.env.NODE_ENV !== "production") {
-  require("dotenv").config({ path: "../.env" });
-}
-const express = require("express");
-const session = require("express-session");
+const express=require('express');
+const dotenv=require('dotenv');
+const connectDB = require('./src/config/db');
+const EVownerRoutes=require('./src/routes/EVownerRoutes');
+const driverRoutes=require('./src/routes/driverRoutes');
+const hostRoutes=require('./src/routes/hostRoutes');
+const authRoutes=require('./src/routes/authRoutes');
+const {notFound ,errorHandler}= require('./src/middleware/errorMiddleware');
 const cors = require("cors");
-const methodOverride = require("method-override");
-const path = require("path");
-const passport = require("passport");
-const MongoStore = require("connect-mongo");
-const { connectDB } = require("./src/config/db");
-require("./src/config/passport"); // initialize strategies
 
-const app = express();
+dotenv.config();
+connectDB();
+const app= express();
 
-const PORT = process.env.PORT || 8000;
-const DB_URL = process.env.DB_URL
-const SESSION_SECRET = process.env.SESSION_SECRET || "thisshouldbeabettersecret";
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
-
-// DB
-connectDB(DB_URL);
-
-// Middlewares
-app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(methodOverride("_method"));
-
-// Sessions
-const store = MongoStore.create({
-  mongoUrl: process.env.DB_URL,
-  collectionName: "sessions",
-  touchAfter: 24 * 60 * 60,
-});
-store.on("error", e => console.error("Session store error:", e));
-
-app.use(session({
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  store,
-  cookie: { secure: false }
+app.use(express.json())
+app.use(cors({
+  origin: ['http://localhost:5173', 'https://evresq-1.onrender.com'] 
 }));
 
-app.use(passport.initialize());
-app.use(passport.session());
-
-app.get("/", (req, res) => {
-  res.json({ ok: true, message: "EV RESQ API" });
-});
-app.use("/api/auth", require("./src/routes/authRoutes"));
-app.use("/api/users", require("./src/routes/userRoutes"));
-app.use("/api/drivers", require("./src/routes/driverRoutes"));
-app.use("/api/hosts", require("./src/routes/hostRoutes"));
-app.use("/api/booking/search", require("./src/routes/bookingRoutes"));
-app.use("/api/chargers", require("./src/routes/chargerRoutes"));
-
-app.all("*", (req, res) => {
-  res.status(404).json({ ok: false, message: "Route not found" });
+app.get('/',(req,res)=>{
+    res.send("API is running");
 });
 
-app.listen(PORT, () => console.log(`🚀 EV RESQ backend running on http://localhost:${PORT}`));
+app.use('/api/auth',authRoutes);
+app.use('/api/EVowner',EVownerRoutes);
+app.use('/api/host',hostRoutes);
+app.use('/api/driver',driverRoutes);
+app.use(notFound);
+app.use(errorHandler);
+
+const port=process.env.PORT || 5000;
+const server=app.listen(port,()=>{
+    console.log(`Serving on port http://localhost:${port}`);
+});

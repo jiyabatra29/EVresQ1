@@ -1,10 +1,8 @@
-const router = require("express").Router();
-const { requireAuth, requireRole } = require("../middleware/auth");
-const { dashboard } = require("../controllers/hostController");
-const { myHostChargers } = require("../controllers/chargerController");
+const express= require('express');
+const router=express.Router()
+const {registeredUser,allUsers} = require('../controllers/hostController')
+const {protect}=require('../middleware/authMiddleware')
 
-router.use(requireAuth, requireRole("host"));
-router.get("/dashboard", dashboard);
-router.get("/chargers/mine", myHostChargers);
+router.route('/').post(registeredUser).get(protect,allUsers);
 
-module.exports = router;
+module.exports=router;
