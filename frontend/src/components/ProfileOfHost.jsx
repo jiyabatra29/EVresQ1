@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import MapView from "./MapView";
+import MapView2 from "./MapView2";
 
 
 export default function ProfileOfHost() {
@@ -40,7 +40,7 @@ export default function ProfileOfHost() {
         padding: "10px"
       }}>
         <h3>📍 Host Location</h3>
-        <MapView lat={host.latitude} lng={host.longitude} />
+        <MapView2 latitude={host.latitude} longitude={host.longitude} />
       </div>
     )}
   </div>

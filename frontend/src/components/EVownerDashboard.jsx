@@ -31,7 +31,13 @@ export default function EVownerDashboard() {
           );
 
           const booking = await r.json();
-          if (booking) statusMap[host._id] = booking.status;
+          if (booking) {
+  statusMap[host._id] = {
+    bookingId: booking._id,
+    status: booking.status
+  };
+}
+
         }
 
         setBookingStatus(statusMap);
@@ -70,8 +76,6 @@ export default function EVownerDashboard() {
                 chargerType: "fast",
                 timeSlot: "2024-07-01T10:00:00Z",
                 status: "requested",
-
-                // ⚠️ user se nahi, browser se auto
                 latitude: pos.coords.latitude,
                 longitude: pos.coords.longitude,
               }),
@@ -85,9 +89,13 @@ export default function EVownerDashboard() {
           if (!res.ok) throw new Error("Request failed");
 
           setBookingStatus((prev) => ({
-            ...prev,
-            [host._id]: "requested",
-          }));
+  ...prev,
+  [host._id]: {
+    bookingId: data.booking._id,
+    status: "requested",
+  },
+}));
+
 
           alert(`Charging request sent to ${host.name}`);
         } catch (err) {
@@ -100,6 +108,54 @@ export default function EVownerDashboard() {
       }
     );
   };
+
+  useEffect(() => {
+  if (!bookingStatus) return;
+
+  const activeBooking = Object.values(bookingStatus).find(
+  (b) => b.status !== "completed"
+);
+
+if (!activeBooking) return;
+
+const bookingId = activeBooking.bookingId;
+
+
+  if (!bookingId) return;
+
+  const token = localStorage.getItem("token");
+
+  const interval = setInterval(() => {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          await fetch(
+            `http://localhost:8000/api/EVowner/update-location/${bookingId}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+              }),
+            }
+          );
+        } catch (err) {
+          console.error("Location update failed", err);
+        }
+      },
+      (err) => {
+        console.error("Geolocation error", err);
+      }
+    );
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, [bookingStatus]);
+
 
   return (
     <div className="ev-dashboard">
@@ -130,7 +186,9 @@ export default function EVownerDashboard() {
               <p className="no-hosts">No hosts available</p>
             ) : (
               hosts.map((host) => {
-                const status = bookingStatus[host._id];
+                const booking = bookingStatus[host._id];
+const status = booking?.status;
+
 
                 return (
                   <div

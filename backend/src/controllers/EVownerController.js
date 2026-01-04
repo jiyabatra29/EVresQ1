@@ -64,7 +64,7 @@ const getAllHosts = asyncHandler(async (req, res) => {
 
 const bookHomeCharger = asyncHandler(async (req, res) => {
   console.log("REQ.USER 👉", req.user);
-  const { hostId, timeSlot, chargerType } = req.body;
+  const { hostId, timeSlot, chargerType,latitude,longitude} = req.body;
 
   if (!hostId || !timeSlot || !chargerType) {
     res.status(400);
@@ -89,7 +89,9 @@ const bookHomeCharger = asyncHandler(async (req, res) => {
     host: hostId,            // selected host
     timeSlot,
     chargerType,
-    status: "requested"
+    status: "requested",
+    latitude,
+    longitude
   });
 
   res.status(201).json({
@@ -122,4 +124,24 @@ const getHostById = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports={registeredUser,allUsers,getAllHosts,bookHomeCharger,getMyBookingForHost,getHostById};
+const updateBookingLocation = asyncHandler(async (req, res) => {
+  const { latitude, longitude } = req.body;
+  console.log("Updating location for booking:", req.params.bookingId, latitude, longitude);
+  await HomeChargerBooking.findByIdAndUpdate(req.params.bookingId, {
+    latitude,
+    longitude,
+    updatedAt: new Date()
+  });
+
+  res.json({ success: true });
+});
+
+const bookingloocation = asyncHandler(async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  const booking = await HomeChargerBooking.findById(req.params.bookingId)
+    .select("latitude longitude");
+
+  res.json(booking);
+});
+
+module.exports={registeredUser,allUsers,getAllHosts,bookHomeCharger,getMyBookingForHost,getHostById,updateBookingLocation, bookingloocation};

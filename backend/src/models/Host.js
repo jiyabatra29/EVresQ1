@@ -11,7 +11,9 @@ const hostSchema = new mongoose.Schema({
     type: String,
     powerOutput: Number,
     connectorType: String
-  }
+  },
+  latitude: { type: Number },
+  longitude: { type: Number }
 }, { timestamps: true });
 
 hostSchema.methods.matchPassword = async function (enteredPassword) {

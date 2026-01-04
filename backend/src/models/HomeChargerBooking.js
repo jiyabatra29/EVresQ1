@@ -36,7 +36,10 @@ const homeChargerBookingSchema = new mongoose.Schema({
     default: "requested"
   },
 
-  price: Number
+  price: Number,
+  latitude: { type: Number },
+  longitude: { type: Number },
+  updatedAt: { type: Date }
 
 }, { timestamps: true });
 

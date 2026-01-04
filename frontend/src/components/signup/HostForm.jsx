@@ -13,6 +13,8 @@ export default function HostForm({ setRole }) {
     location: "",
     chargerType: "",
     powerOutput: "",
+    latitude: "",
+    longitude: ""
   });
 
   const handleChange = (e) => {
@@ -131,7 +133,21 @@ const { login } = useInfo();
           onChange={handleChange}
           style={{ padding: "10px", borderRadius: "5px", border: "1px solid #ccc" }}
         />
-
+        <input
+          name="latitude"
+          type="number"
+          placeholder="Latitude"
+          onChange={handleChange}
+          style={{ padding: "10px", borderRadius: "5px", border: "1px solid #ccc" }}
+        />
+        <input
+          name="longitude"
+          type="number"
+          placeholder="Longitude"
+          onChange={handleChange}
+          style={{ padding: "10px", borderRadius: "5px", border: "1px solid #ccc" }}
+        />
+        
         <button
           type="submit"
           style={{

@@ -14,7 +14,7 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const MapView = ({ latitude, longitude }) => {
+const MapView2 = ({ latitude, longitude }) => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -24,25 +24,25 @@ const MapView = ({ latitude, longitude }) => {
 
   const initMap = () => {
     if (!mapRef.current && mapContainerRef.current) {
-      mapRef.current = L.map(mapContainerRef.current).setView(
-        [latitude, longitude],
-        15
-      );
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      mapRef.current = L.map(mapContainerRef.current).setView([latitude, longitude], 15);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
-        attribution: "&copy; OpenStreetMap",
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       }).addTo(mapRef.current);
+
       markerRef.current = L.marker([latitude, longitude]).addTo(mapRef.current);
     } else if (mapRef.current) {
       markerRef.current.setLatLng([latitude, longitude]);
       mapRef.current.setView([latitude, longitude]);
     }
+
+    // wait a bit longer for React rendering
+    setTimeout(() => mapRef.current.invalidateSize(), 500);
   };
+
   initMap();
-  setTimeout(() => {
-  mapRef.current.invalidateSize();
-}, 200);
 }, [latitude, longitude]);
+
 
 
   return (
@@ -58,4 +58,4 @@ const MapView = ({ latitude, longitude }) => {
   );
 };
 
-export default MapView;
+export default MapView2;

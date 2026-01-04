@@ -5,8 +5,8 @@ const HomeChargerBooking = require('../models/HomeChargerBooking');
 const mongoose= require('mongoose') ;
 
 const registeredUser=asyncHandler(async (req,res)=>{
-      const {name,email,password,phone,location}=req.body;
-      if (!name || !email || !password || !phone || !location) {
+      const {name,email,password,phone,location,latitude,longitude}=req.body;
+      if (!name || !email || !password || !phone || !location || !latitude || !longitude) {
           res.status(400);
           throw new Error("Please Enter all the Feilds");
       }
@@ -15,7 +15,7 @@ const registeredUser=asyncHandler(async (req,res)=>{
           res.status(400);
           throw new Error("User already exists");
       }
-      const user = await Host.create({name,email,password,phone,location});
+      const user = await Host.create({name,email,password,phone,location,latitude,longitude});
       if (user) {
         const token = generateToken(user._id,"Host");
           res.status(201).json({
@@ -24,7 +24,9 @@ const registeredUser=asyncHandler(async (req,res)=>{
             email: user.email,
             phone: user.phone,
             location: user.location,
-            token:token
+            token:token,
+            latitude: user.latitude,
+            longitude: user.longitude,  
           });
         } else {
           res.status(400);

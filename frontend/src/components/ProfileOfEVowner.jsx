@@ -6,6 +6,7 @@ export default function ProfileOfEVowner() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
   const [booking, setBooking] = useState(null);
+  const [location, setLocation] = useState(null);
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -19,6 +20,24 @@ export default function ProfileOfEVowner() {
     };
     fetchBooking();
   }, [bookingId]);
+
+  useEffect(() => {
+  const fetchLocation = async () => {
+    const token = localStorage.getItem("token");
+    const res = await fetch(
+      `http://localhost:8000/api/EVowner/booking-location/${bookingId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await res.json();
+    setLocation(data);
+  };
+
+  fetchLocation(); // 🔥 IMMEDIATE CALL
+
+  const interval = setInterval(fetchLocation, 5000);
+  return () => clearInterval(interval);
+}, [bookingId]);
+
 
   const updateStatus = async (action) => {
     const token = localStorage.getItem("token");
@@ -63,7 +82,6 @@ return (
       {booking.status === "charging" && (
         <button onClick={() => updateStatus("completed")}>Complete</button>
       )}
-      {booking?.latitude && booking?.longitude && (
   <div style={{
     marginTop: "20px",
     border: "2px solid #ddd",
@@ -72,13 +90,14 @@ return (
   }}>
     <h3>📍 EV Owner Location</h3>
 
-    <MapView
-      lat={booking.latitude}
-      lng={booking.longitude}
-    />
-  </div>
+    {location && (
+  <MapView
+    latitude={location.latitude}
+    longitude={location.longitude}
+  />
 )}
 
+  </div>
   </div>
 );
 }
