@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import MapView from "./MapView";
 
 export default function ProfileOfEVowner() {
   const { bookingId } = useParams();
@@ -62,6 +63,22 @@ return (
       {booking.status === "charging" && (
         <button onClick={() => updateStatus("completed")}>Complete</button>
       )}
+      {booking?.latitude && booking?.longitude && (
+  <div style={{
+    marginTop: "20px",
+    border: "2px solid #ddd",
+    borderRadius: "10px",
+    padding: "10px"
+  }}>
+    <h3>📍 EV Owner Location</h3>
+
+    <MapView
+      lat={booking.latitude}
+      lng={booking.longitude}
+    />
+  </div>
+)}
+
   </div>
 );
 }
