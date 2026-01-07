@@ -135,9 +135,13 @@ export default function HostDashboard() {
                 <p>
                   <b>Status:</b> {req.status}
                 </p>
-                <button key={req._id}  onClick={() => navigate(`/host/evowner/${req._id}`)}>
-                  View Profile
-                </button>
+                
+                <button key={req._id}
+  className="view-profile-btn"
+  onClick={() => navigate(`/host/evowner/${req._id}`)}
+>
+  View Profile
+</button>
               </div>
             </div>
           ))

@@ -5,44 +5,55 @@ import MapView from "./MapView";
 export default function ProfileOfEVowner() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
+
   const [booking, setBooking] = useState(null);
   const [location, setLocation] = useState(null);
 
   /* ================= FETCH BOOKING ================= */
   useEffect(() => {
     const fetchBooking = async () => {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `http://localhost:8000/api/host/booking/${bookingId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = await res.json();
-      setBooking(data);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(
+          `http://localhost:8000/api/host/booking/${bookingId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await res.json();
+        setBooking(data);
+      } catch (err) {
+        console.error("Booking fetch error:", err);
+      }
     };
+
     fetchBooking();
   }, [bookingId]);
 
   /* ================= FETCH LOCATION (REAL-TIME) ================= */
   useEffect(() => {
     const fetchLocation = async () => {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `http://localhost:8000/api/EVowner/booking-location/${bookingId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = await res.json();
-      setLocation(data);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(
+          `http://localhost:8000/api/EVowner/booking-location/${bookingId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await res.json();
+        setLocation(data);
+      } catch (err) {
+        console.error("Location fetch error:", err);
+      }
     };
 
-    fetchLocation(); // initial fetch
-    const interval = setInterval(fetchLocation, 5000); // refresh every 5 sec
+    fetchLocation();
+    const interval = setInterval(fetchLocation, 5000);
     return () => clearInterval(interval);
   }, [bookingId]);
 
   /* ================= UPDATE BOOKING STATUS ================= */
   const updateStatus = async (action) => {
     const token = localStorage.getItem("token");
-    let endpoint =
+
+    const endpoint =
       action === "approved"
         ? "approve"
         : action === "charging"
@@ -61,6 +72,7 @@ export default function ProfileOfEVowner() {
     }
   };
 
+  /* ================= SAFE LOADING ================= */
   if (!booking || !booking.EVowner) {
     return <p>Loading EV Owner details...</p>;
   }
@@ -84,15 +96,22 @@ export default function ProfileOfEVowner() {
 
         <div style={styles.mapBox}>
           <h3>📍 EV Owner Location</h3>
-          {location && (
-            <MapView latitude={location.latitude} longitude={location.longitude} />
+
+          {location && location.latitude && location.longitude ? (
+            <MapView
+              latitude={location.latitude}
+              longitude={location.longitude}
+            />
+          ) : (
+            <p>Fetching location...</p>
           )}
         </div>
 
         <div style={styles.locationBox}>
-          <b>Location:</b> {location
-    ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`
-    : "Fetching..."}
+          <b>Location:</b>{" "}
+          {location
+            ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`
+            : "Fetching..."}
         </div>
       </div>
 
@@ -101,12 +120,20 @@ export default function ProfileOfEVowner() {
         <div style={styles.profileCard}>
           <div style={styles.avatar}>👤</div>
 
-          <h2 style={styles.name}>{booking.EVowner.name}</h2>
-          <p style={styles.email}>{booking.EVowner.email}</p>
-          <p style={styles.phone}>{booking.EVowner.phone}</p>
+          <h2 style={styles.name}>
+            {booking.EVowner.name || "EV Owner"}
+          </h2>
+
+          <p style={styles.email}>
+            {booking.EVowner.email || "—"}
+          </p>
+
+          <p style={styles.phone}>
+            {booking.EVowner.phone || "—"}
+          </p>
 
           <div style={styles.chargerType}>
-            ⚡ {booking.EVowner?.chargerType || "N/A"}
+            ⚡ {booking.EVowner.chargerType || "N/A"}
           </div>
 
           <div style={styles.statusBox}>
@@ -115,20 +142,31 @@ export default function ProfileOfEVowner() {
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* ACTION BUTTONS */}
           <div style={{ marginTop: "15px" }}>
             {booking.status === "requested" && (
-              <button style={styles.button} onClick={() => updateStatus("approved")}>
+              <button
+                style={styles.button}
+                onClick={() => updateStatus("approved")}
+              >
                 Approve
               </button>
             )}
+
             {booking.status === "approved" && (
-              <button style={styles.button} onClick={() => updateStatus("charging")}>
+              <button
+                style={styles.button}
+                onClick={() => updateStatus("charging")}
+              >
                 Start Charging
               </button>
             )}
+
             {booking.status === "charging" && (
-              <button style={styles.button} onClick={() => updateStatus("completed")}>
+              <button
+                style={styles.button}
+                onClick={() => updateStatus("completed")}
+              >
                 Complete
               </button>
             )}
@@ -151,7 +189,6 @@ const styles = {
   },
 
   heading: { marginBottom: "15px" },
-
   left: { flex: 1 },
 
   right: {

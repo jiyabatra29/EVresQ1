@@ -5,34 +5,35 @@ import MapView2 from "./MapView2";
 export default function ProfileOfHost() {
   const { hostId } = useParams();
   const [host, setHost] = useState(null);
-  const [bookingStatus, setBookingStatus] = useState({});
 
+  // ✅ FIX 1
+  const [bookingStatus, setBookingStatus] = useState("pending");
+
+  /* ===== BOOKING STATUS POLLING ===== */
   useEffect(() => {
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  const fetchBookingStatus = async () => {
-    try {
-      const res = await fetch(
-        `http://localhost:8000/api/EVowner/my-booking/${hostId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const booking = await res.json();
-      if (booking?.status) {
-        setBookingStatus(booking.status);
+    const fetchBookingStatus = async () => {
+      try {
+        const res = await fetch(
+          `http://localhost:8000/api/EVowner/my-booking/${hostId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const booking = await res.json();
+        if (booking?.status) {
+          setBookingStatus(booking.status);
+        }
+      } catch (err) {
+        console.error("Booking status fetch failed", err);
       }
-    } catch (err) {
-      console.error("Booking status fetch failed", err);
-    }
-  };
+    };
 
-  fetchBookingStatus();
-  const interval = setInterval(fetchBookingStatus, 5000);
+    fetchBookingStatus();
+    const interval = setInterval(fetchBookingStatus, 5000);
+    return () => clearInterval(interval);
+  }, [hostId]);
 
-  return () => clearInterval(interval);
-}, [hostId]);
-
-
+  /* ===== HOST DATA ===== */
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -50,6 +51,7 @@ export default function ProfileOfHost() {
 
   if (!host) return <p>Loading...</p>;
 
+  /* ===== STATUS UI MAP ===== */
   const statusMap = {
     approved: { text: "✔ Approved", style: styles.approved },
     charging: { text: "⚡ Charging Started", style: styles.charging },
@@ -57,7 +59,10 @@ export default function ProfileOfHost() {
     pending: { text: "⏳ Waiting for Host Approval", style: styles.pending }
   };
 
-  const statusUI = statusMap[bookingStatus];
+  // ✅ FIX 2 (fallback)
+  const statusUI = statusMap[bookingStatus] || statusMap.pending;
+
+  const hasLocation = host?.latitude && host?.longitude;
 
   return (
     <div style={styles.page}>
@@ -67,11 +72,20 @@ export default function ProfileOfHost() {
 
         <div style={styles.mapBox}>
           <h3>📍 Host Location</h3>
-          <MapView2 latitude={host.latitude} longitude={host.longitude} />
+
+          {/* ✅ FIX 3 */}
+          {hasLocation ? (
+            <MapView2
+              latitude={host.latitude}
+              longitude={host.longitude}
+            />
+          ) : (
+            <p>Location not available</p>
+          )}
         </div>
 
         <div style={styles.locationBox}>
-          <b>Host Location:</b> {host.location}
+          <b>Host Location:</b> {host.location || "N/A"}
         </div>
       </div>
 
@@ -81,9 +95,8 @@ export default function ProfileOfHost() {
           <div style={styles.avatar}>👤</div>
 
           <h2 style={styles.name}>{host.name}</h2>
-
           <p style={styles.email}>{host.email}</p>
-          <p style={styles.phone}>{host.phone}</p>
+          <p style={styles.phone}>{host.phone || "—"}</p>
 
           <div style={styles.chargerType}>
             ⚡ {host.chargerType}
@@ -100,7 +113,7 @@ export default function ProfileOfHost() {
   );
 }
 
-/* ================= STYLES ================= */
+/* ================= STYLES (UNCHANGED) ================= */
 
 const styles = {
   page: {
@@ -113,11 +126,10 @@ const styles = {
   },
 
   heading: { marginBottom: "15px" },
-
   left: { flex: 1 },
 
   right: {
-    marginTop:"80px",
+    marginTop: "80px",
     width: "380px",
     flex: 1,
     display: "flex",
@@ -140,8 +152,6 @@ const styles = {
     boxShadow: "0 6px 18px rgba(0,0,0,0.1)"
   },
 
-  /* ===== PROFILE CARD ===== */
-
   profileCard: {
     width: "280px",
     background: "#fff",
@@ -149,8 +159,6 @@ const styles = {
     borderRadius: "16px",
     boxShadow: "0 12px 28px rgba(0,0,0,0.15)",
     textAlign: "center",
-
-    /* ✅ ONLY CHANGE */
     marginTop: "60px"
   },
 
@@ -166,23 +174,9 @@ const styles = {
     margin: "0 auto 12px"
   },
 
-  name: {
-    fontSize: "22px",
-    fontWeight: "700",
-    marginBottom: "6px"
-  },
-
-  email: {
-    fontSize: "15px",
-    color: "#444",
-    marginBottom: "4px"
-  },
-
-  phone: {
-    fontSize: "15px",
-    color: "#444",
-    marginBottom: "10px"
-  },
+  name: { fontSize: "22px", fontWeight: "700", marginBottom: "6px" },
+  email: { fontSize: "15px", color: "#444", marginBottom: "4px" },
+  phone: { fontSize: "15px", color: "#444", marginBottom: "10px" },
 
   chargerType: {
     display: "inline-block",

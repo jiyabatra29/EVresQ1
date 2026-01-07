@@ -11,6 +11,7 @@ export default function EVownerDashboard() {
 
   const navigate = useNavigate();
 
+  /* ================= FETCH HOSTS + BOOKING STATUS ================= */
   useEffect(() => {
     if (!showHosts) return;
 
@@ -35,12 +36,11 @@ export default function EVownerDashboard() {
 
           const booking = await r.json();
           if (booking) {
-  statusMap[host._id] = {
-    bookingId: booking._id,
-    status: booking.status
-  };
-}
-
+            statusMap[host._id] = {
+              bookingId: booking._id,
+              status: booking.status,
+            };
+          }
         }
 
         setBookingStatus(statusMap);
@@ -54,7 +54,8 @@ export default function EVownerDashboard() {
     return () => clearInterval(interval);
   }, [showHosts]);
 
-const handleRequestCharging = (host) => {
+  /* ================= REQUEST CHARGING ================= */
+  const handleRequestCharging = (host) => {
     if (!navigator.geolocation) {
       alert("Location not supported");
       return;
@@ -85,19 +86,15 @@ const handleRequestCharging = (host) => {
           );
 
           const data = await res.json();
-          console.log("STATUS:", res.status);
-          console.log("RESPONSE:", data);
-
           if (!res.ok) throw new Error("Request failed");
 
           setBookingStatus((prev) => ({
-  ...prev,
-  [host._id]: {
-    bookingId: data.booking._id,
-    status: "requested",
-  },
-}));
-
+            ...prev,
+            [host._id]: {
+              bookingId: data.booking._id,
+              status: "requested",
+            },
+          }));
 
           alert(`Charging request sent to ${host.name}`);
         } catch (err) {
@@ -105,31 +102,25 @@ const handleRequestCharging = (host) => {
           alert("Error sending request");
         }
       },
-      () => {
-        alert("Please allow location access");
-      }
+      () => alert("Please allow location access")
     );
-};
+  };
 
-useEffect(() => {
-  if (!bookingStatus) return;
+  /* ================= UPDATE LOCATION (CHARGING) ================= */
+  useEffect(() => {
+    if (!bookingStatus) return;
 
-  const activeBooking = Object.values(bookingStatus).find(
-  (b) => b.status !== "completed"
-);
+    const activeBooking = Object.values(bookingStatus).find(
+      (b) => b.status !== "completed"
+    );
 
-if (!activeBooking) return;
+    if (!activeBooking) return;
 
-const bookingId = activeBooking.bookingId;
+    const bookingId = activeBooking.bookingId;
+    const token = localStorage.getItem("token");
 
-
-  if (!bookingId) return;
-
-  const token = localStorage.getItem("token");
-
-  const interval = setInterval(() => {
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+    const interval = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(async (pos) => {
         try {
           await fetch(
             `http://localhost:8000/api/EVowner/update-location/${bookingId}`,
@@ -146,91 +137,51 @@ const bookingId = activeBooking.bookingId;
             }
           );
         } catch (err) {
-          console.error("Location update failed", err);
+          console.error(err);
         }
-      },
-      (err) => {
-        console.error("Geolocation error", err);
+      });
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [bookingStatus]);
+
+  /* ================= DRIVER BOOKING ================= */
+  useEffect(() => {
+    if (redirected) return;
+
+    const fetchDriverStatus = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(
+          "http://localhost:8000/api/EVowner/my-driver-request",
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data?.driver) setDriverBooking(data);
+      } catch (err) {
+        console.error(err);
       }
-    );
-  }, 5000);
+    };
 
-  return () => clearInterval(interval);
-}, [bookingStatus]);
+    fetchDriverStatus();
+    const interval = setInterval(fetchDriverStatus, 5000);
+    return () => clearInterval(interval);
+  }, [redirected]);
 
-
-useEffect(() => {
-  if (!driverBooking) return;
-  const bookingId = driverBooking._id;
-  const token = localStorage.getItem("token");
-
-  const interval = setInterval(() => {
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          await fetch(
-            `http://localhost:8000/api/EVowner/update-location-for-driver/${bookingId}`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-              }),
-            }
-          );
-        } catch (err) {
-          console.error("Location update failed", err);
-        }
-      },
-      (err) => {
-        console.error("Geolocation error", err);
-      }
-    );
-  }, 5000);
-}, [driverBooking]);
-
-useEffect(() => {
-  if (redirected) return; // 🚨 STOP polling once redirected
-
-  const fetchDriverStatus = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        "http://localhost:8000/api/EVowner/my-driver-request",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (!res.ok) return;
-
-      const data = await res.json();
-      if (data?.driver) {
-        setDriverBooking(data);
-      }
-    } catch (err) {
-      console.error("Driver status fetch failed", err);
+  useEffect(() => {
+    if (driverBooking?.driver) {
+      setRedirected(true);
+      navigate(`/ev/driver/${driverBooking.driver._id}`, {
+        state: driverBooking,
+        replace: true,
+      });
     }
-  };
+  }, [driverBooking, navigate]);
 
-  fetchDriverStatus();
-  const interval = setInterval(fetchDriverStatus, 5000);
-
-  return () => clearInterval(interval);
-}, [redirected]);
-
-useEffect(() => {
-  if (driverBooking?.driver) {
-    navigate(`/ev/driver/${driverBooking.driver._id}`, {
-      state: driverBooking,
-      replace: true, // 👈 back button glitch avoid
-    });
-  }
-}, [driverBooking, navigate]);
-
-
+  /* ================= UI ================= */
   return (
     <div className="ev-dashboard">
       <div className="ev-main-header">
@@ -240,47 +191,51 @@ useEffect(() => {
         </p>
       </div>
 
-      <button
-  className="view-hosts-btn"
-  onClick={async () => {
-    const token = localStorage.getItem("token");
-
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const res=await fetch("http://localhost:8000/api/EVowner/request-driver", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          address: "Current Location",
-          note: "Need charging assistance",
-        }),
-      });
-      const data = await res.json();
-          console.log("STATUS:", res.status);
-          console.log("RESPONSE:", data);
-
-      alert("🚗 Driver request sent");
-    });
-  }}
->
-  🚗 Book Driver
-</button>
-
+      {/* ===== DASHBOARD ACTIONS ===== */}
       {!showHosts && (
-        <div className="view-hosts-wrapper">
+        <div
+          className="view-hosts-wrapper"
+          style={{ display: "flex", gap: "16px", justifyContent: "center" }}
+        >
           <button
             className="view-hosts-btn"
             onClick={() => setShowHosts(true)}
           >
             View All Hosts
           </button>
+
+          <button
+            className="view-hosts-btn"
+            onClick={() => {
+              const token = localStorage.getItem("token");
+
+              navigator.geolocation.getCurrentPosition(async (pos) => {
+                await fetch(
+                  "http://localhost:8000/api/EVowner/request-driver",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      latitude: pos.coords.latitude,
+                      longitude: pos.coords.longitude,
+                      address: "Current Location",
+                      note: "Need charging assistance",
+                    }),
+                  }
+                );
+                alert("🚗 Driver request sent");
+              });
+            }}
+          >
+            🚗 Book Driver
+          </button>
         </div>
       )}
 
+      {/* ===== HOST LIST ===== */}
       {showHosts && (
         <>
           <h2 className="hosts-title">Available Charging Hosts</h2>
@@ -292,15 +247,14 @@ useEffect(() => {
               hosts.map((host) => {
                 const booking = bookingStatus[host._id];
                 const status = booking?.status;
+
                 const disableRequest =
-  status === "requested" ||
-  status === "approved" ||
-  status === "charging";
+                  status === "requested" ||
+                  status === "approved" ||
+                  status === "charging";
 
                 return (
-                  <div
-                    className="host-card big-card"
-                  >
+                  <div key={host._id} className="host-card big-card">
                     <div className="host-avatar">🧑‍💼</div>
 
                     <div className="host-info">
@@ -308,25 +262,26 @@ useEffect(() => {
                       <p><b>Email:</b> {host.email}</p>
                       <p><b>Location:</b> {host.location || "Not provided"}</p>
 
-
                       <button
                         className="request-btn"
                         disabled={disableRequest}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRequestCharging(host);
-                        }}
+                        onClick={() => handleRequestCharging(host)}
                       >
                         {!status && "Request Charging"}
                         {status === "requested" && "Requested"}
                         {status === "approved" && "Approved"}
                         {status === "charging" && "Charging..."}
                         {status === "completed" && "Request Again"}
-                        
                       </button>
-                      <br></br>
-                      <button key={host._id} className="request-btn"
-                    onClick={() => navigate(`/ev/host/${host._id}`)}>View Profile</button>
+
+                      <br />
+
+                      <button
+                        className="request-btn"
+                        onClick={() => navigate(`/ev/host/${host._id}`)}
+                      >
+                        View Profile
+                      </button>
                     </div>
                   </div>
                 );
